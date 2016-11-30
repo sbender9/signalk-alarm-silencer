@@ -44,7 +44,7 @@ module.exports = function(app) {
            || existing.method.indexOf("sound") != -1 )
       {
         if  ( typeof existing.method != "undefined" && existing.method != null )
-          existing.method = existing.filter(function(method) { return method != "sound" })
+          existing.method = existing.method.filter(function(method) { return method != "sound" })
         else
           existing.method = ['visual']
         
