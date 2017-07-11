@@ -1,4 +1,5 @@
 const debug = require('debug')('alarm-silencer')
+const util = require('util')
 
 const _ = require('lodash')
 
@@ -44,7 +45,12 @@ module.exports = function(app) {
            || existing.method.indexOf("sound") != -1 )
       {
         if  ( typeof existing.method != "undefined" && existing.method != null )
-          existing.method = existing.method.filter(function(method) { return method != "sound" })
+        {
+          //existing.method = existing.method.filter(function(method) { return method != "sound" })
+          var idx = existing.method.indexOf("sound")
+          if ( idx != -1 )
+            existing.method.splice(idx, 1)
+        }
         else
           existing.method = ['visual']
         
