@@ -40,19 +40,20 @@ module.exports = function(app) {
 
       var existing = _.get(app.signalk.self, notification.path)
       debug("existing: " + existing.method)
-      if ( typeof existing.method == "undefined"
-           || existing.method == null
-           || existing.method.indexOf("sound") != -1 )
+      //if ( typeof existing.method == "undefined"
+        //|| existing.method == null )
       {
+        /*
         if  ( typeof existing.method != "undefined" && existing.method != null )
         {
-          //existing.method = existing.method.filter(function(method) { return method != "sound" })
           var idx = existing.method.indexOf("sound")
           if ( idx != -1 )
             existing.method.splice(idx, 1)
         }
         else
           existing.method = ['visual']
+        */
+        existing.method = []
         
         existing.timestamp = (new Date()).toISOString()
 
@@ -70,9 +71,9 @@ module.exports = function(app) {
             }
           ]
         }
-        app.signalk.addDelta(delta)
+        app.handleMessage(plugin.id, delta)
 
-        debug("silenced alarm: " + notification.path)
+        debug("silenced alarm: " + JSON.stringify(delta))
       }
       res.send("Alarm silenced")
     })
