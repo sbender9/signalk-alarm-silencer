@@ -12,7 +12,6 @@
   "author": "scott@scottbender.net",
   "license": "ISC",
   "dependencies": {
-    "debug": "^3.1.0",
     "lodash": "^4.17.4"
   },
   "repository": {
