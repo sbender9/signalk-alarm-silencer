@@ -4,7 +4,7 @@
   "description": "Plugin to silence SignalK Alarms",
   "main": "index.js",
   "scripts": {
-    "test": "$NODE $npm_package_main"  
+    "test": "$NODE $npm_package_main"
   },
   "keywords": [
     "signalk-node-server-plugin"
@@ -15,7 +15,7 @@
     "lodash": "^4.17.4"
   },
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/sbender9/signalk-alarm-silencer"
+    "type": "git",
+    "url": "https://github.com/sbender9/signalk-alarm-silencer"
   }
 }

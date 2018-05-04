@@ -73,8 +73,8 @@ module.exports = function(app) {
   plugin.stop = function() {
   }
 
-  function silenceAlarm(path) {
-    var existing = app.getSelfPath(path)
+  function silenceAlarm(npath) {
+    var existing = app.getSelfPath(npath + '.value')
     app.debug("existing: " + existing.method)
     existing.method = []
         
@@ -88,7 +88,7 @@ module.exports = function(app) {
             label: "self.notificationhandler"
           },
           values: [{
-            path: notification.path,
+            path: npath,
             value: existing
           }]
         }
