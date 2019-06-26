@@ -188,6 +188,38 @@ module.exports = function(app) {
       res.send("Alarm silenced")
     })
 
+    router.post("/silenceNotification", (req, res) => {
+
+      var notification = req.body
+      if ( typeof notification.path == 'undefined' )
+      {
+        app.debug("invalid request: %j", notification)
+        res.status(400)
+        res.send("Invalid Request")
+        return
+      }
+
+      silenceAlarm(notification.path)
+      
+      res.send("Alarm silenced")
+    })
+
+    router.post("/clearNotification", (req, res) => {
+
+      var notification = req.body
+      if ( typeof notification.path == 'undefined' )
+      {
+        app.debug("invalid request: %j", notification)
+        res.status(400)
+        res.send("Invalid Request")
+        return
+      }
+
+      clearAlarm(notification.path)
+      
+      res.send("Alarm cleared")
+    })
+
     router.post("/silenceAllNotifications", (req, res) => {
 
       let all = []
@@ -211,6 +243,49 @@ module.exports = function(app) {
   function silenceAlarm(npath) {
     var existing = app.getSelfPath(npath + '.value')
     app.debug("existing: " + existing.method)
+    existing.method = []
+        
+    existing.timestamp = (new Date()).toISOString()
+    
+    const delta = {
+      context: "vessels." + app.selfId,
+      updates: [
+        {
+          values: [{
+            path: npath,
+            value: existing
+          }]
+        }
+      ]
+    }
+    app.handleMessage(plugin.id, delta)
+
+    if ( existing.pgn && existing.pgn == 65288 ) {
+      let parts = npath.split('.')
+	  
+      if ( parts.length === 3 )
+      {
+	let group = parts[1];
+		
+	let groupId = raymarineAlarmGroupCodes[group];
+	let alarmId = raymarineAlarmCodes[existing.message];
+
+
+        let n2k = util.format(raymarine_silence, (new Date()).toISOString(),
+                              0,
+                              padd(alarmId.toString(16),2),
+                              padd(groupId.toString(16),2))
+        app.emit('nmea2000out', msg)
+      }
+    }
+    
+    app.debug("cleared alarm: %j", delta)
+  }
+
+
+  function clearAlarm(npath) {
+    var existing = app.getSelfPath(npath + '.value')
+    existing.state = 'normal'
     existing.method = []
         
     existing.timestamp = (new Date()).toISOString()
@@ -252,7 +327,7 @@ module.exports = function(app) {
     
     app.debug("silenced alarm: %j", delta)
   }
-
+  
   return plugin
 }
 
