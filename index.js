@@ -188,7 +188,7 @@ module.exports = function(app) {
       res.send("Alarm silenced")
     })
 
-    router.post("/silenceNotification", (req, res) => {
+    router.put("/silenceNotification", (req, res) => {
 
       var notification = req.body
       if ( typeof notification.path == 'undefined' )
@@ -279,7 +279,7 @@ module.exports = function(app) {
       }
     }
     
-    app.debug("cleared alarm: %j", delta)
+    app.debug("silenced alarm: %j", delta)
   }
 
 
