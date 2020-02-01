@@ -139,10 +139,11 @@ const raymarineAlarmCodes = {
 module.exports = function(app) {
   var plugin = {}
   var unsubscribes = []
+  var registered = []
 
   plugin.id = "alarmsilencer"
   plugin.name = "Alarm Silencer"
-  plugin.description = "Plugin to silence SignalK Alarms"
+  plugin.description = "Plugin to silence SignalK Notifications"
 
   plugin.schema = {
     title: "Alarm Silencer",
@@ -156,19 +157,50 @@ module.exports = function(app) {
 
   plugin.start = function(options)
   {
-    /*
-    var command = {
+    var subscription = {
       context: "vessels.self",
       subscribe: [{
-        path: "requested.notifications.*",
+        path: "notifications.*",
         policy: 'instant'
       }]
     }
     
-    app.subscriptionmanager.subscribe(command, unsubscribes, subscription_error, got_delta)
-    */
+    app.subscriptionmanager.subscribe(subscription, unsubscribes, subscription_error, delta => {
+        delta.updates.forEach(update => {
+          update.values.forEach(pv => {
+            if ( pv.path.startsWith(`notifications.`) && registered.indexOf(pv.path) == -1 ) {
+              app.registerPutHandler('vessels.self',
+                                     pv.path + '.value.state',
+                                     putState)
+              app.registerPutHandler('vessels.self',
+                                     pv.path + '.value.method',
+                                     putMethod)
+              registered.push(pv.path)
+            }
+          })
+        })
+    })
     
     return true
+  }
+
+  function putState(context, path, value, cb)
+  {
+    const parts = path.split('.')
+    const notifPath = parts.slice(0, parts.length-2).join('.')
+    clearNotification(notifPath, value)
+  }
+
+  function putMethod(context, path, value, cb)
+  {
+    const parts = path.split('.')
+    const notifPath = parts.slice(0, parts.length-2).join('.')
+    silenceNotification(notifPath, value)
+  }
+
+  function subscription_error(err)
+  {
+    app.error(err)
   }
 
   plugin.registerWithRouter = function(router) {
@@ -183,7 +215,7 @@ module.exports = function(app) {
         return
       }
 
-      silenceAlarm(notification.path)
+      silenceNotification(notification.path)
       
       res.send("Alarm silenced")
     })
@@ -199,7 +231,7 @@ module.exports = function(app) {
         return
       }
 
-      silenceAlarm(notification.path)
+      silenceNotification(notification.path)
       
       res.send("Alarm silenced")
     })
@@ -215,7 +247,7 @@ module.exports = function(app) {
         return
       }
 
-      clearAlarm(notification.path)
+      clearNotification(notification.path)
       
       res.send("Alarm cleared")
     })
@@ -228,22 +260,23 @@ module.exports = function(app) {
         if ( notification.value.state !== 'normal'
              && notification.value.method
              && notification.value.method.find(m => m === 'sound') ) {
-          silenceAlarm(notification.path)
+          silenceNotification(notification.path)
         }
       })
       
-      res.send("Alarms silenced")
+      res.send("Notifications silenced")
     })
   }
-  
 
   plugin.stop = function() {
+    unsubscribes.forEach(f => f())
+    unsubscribes = []
   }
 
-  function silenceAlarm(npath) {
+  function silenceNotification(npath, method=[]) {
     var existing = app.getSelfPath(npath + '.value')
     app.debug("existing: " + existing.method)
-    existing.method = []
+    existing.method = method
         
     existing.timestamp = (new Date()).toISOString()
     
@@ -283,10 +316,10 @@ module.exports = function(app) {
   }
 
 
-  function clearAlarm(npath) {
+  function clearNotification(npath, state='normal') {
     var existing = app.getSelfPath(npath + '.value')
-    existing.state = 'normal'
-    existing.method = []
+    existing.state = state
+    //existing.method = []
         
     existing.timestamp = (new Date()).toISOString()
     
