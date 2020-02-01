@@ -170,10 +170,10 @@ module.exports = function(app) {
           update.values.forEach(pv => {
             if ( pv.path.startsWith(`notifications.`) && registered.indexOf(pv.path) == -1 ) {
               app.registerPutHandler('vessels.self',
-                                     pv.path + '.value.state',
+                                     pv.path + '.state',
                                      putState)
               app.registerPutHandler('vessels.self',
-                                     pv.path + '.value.method',
+                                     pv.path + '.method',
                                      putMethod)
               registered.push(pv.path)
             }
@@ -187,14 +187,14 @@ module.exports = function(app) {
   function putState(context, path, value, cb)
   {
     const parts = path.split('.')
-    const notifPath = parts.slice(0, parts.length-2).join('.')
+    const notifPath = parts.slice(0, parts.length-1).join('.')
     clearNotification(notifPath, value)
   }
 
   function putMethod(context, path, value, cb)
   {
     const parts = path.split('.')
-    const notifPath = parts.slice(0, parts.length-2).join('.')
+    const notifPath = parts.slice(0, parts.length-1).join('.')
     silenceNotification(notifPath, value)
   }
 
