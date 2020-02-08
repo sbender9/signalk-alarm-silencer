@@ -198,16 +198,14 @@ module.exports = function(app) {
   {
     const parts = path.split('.')
     const notifPath = parts.slice(0, parts.length-1).join('.')
-    clearNotification(notifPath, value)
-    return SUCCESS_RES
+    return clearNotification(notifPath, value) ? SUCCESS_RES : FAILURE_RES
   }
 
   function putMethod(context, path, value, cb)
   {
     const parts = path.split('.')
     const notifPath = parts.slice(0, parts.length-1).join('.')
-    silenceNotification(notifPath, value)
-    return SUCCESS_RES
+    return silenceNotification(notifPath, value) ? SUCCESS_RES : FAILURE_RES
   }
 
   function subscription_error(err)
@@ -260,7 +258,7 @@ module.exports = function(app) {
       }
 
       clearNotification(notification.path)
-      
+
       res.send("Alarm cleared")
     })
 
@@ -287,8 +285,12 @@ module.exports = function(app) {
 
   function silenceNotification(npath, method=[]) {
     var existing = app.getSelfPath(npath)
+    if (typeof existing === 'undefined') {
+      app.debug("path %s not found", npath)
+      return false
+    }
     app.debug("method: %j", method)
-    if (typeof existing.value === 'undefined') existing.value = []
+    if (typeof existing.value !== 'object') existing.value = {}
     existing.value.method = Array.isArray(method) ? method : []
 
     existing.timestamp = (new Date()).toISOString()
@@ -297,9 +299,6 @@ module.exports = function(app) {
       context: "vessels." + app.selfId,
       updates: [
         {
-          source: {
-            label: "self.notificationhandler"
-          },
           values: [{
             path: npath,
             value: existing.value
@@ -327,13 +326,18 @@ module.exports = function(app) {
     }
 
     app.debug("silenced alarm: %j", delta)
+    return true
   }
 
 
   function clearNotification(npath, state='normal') {
     var existing = app.getSelfPath(npath)
+    if (typeof existing === 'undefined') {
+      app.debug("path %s not found", npath)
+      return false
+    }
     app.debug("state: %j", state)
-    if (typeof existing.value === 'undefined') existing.value = []
+    if (typeof existing.value !== 'object') existing.value = {}
     existing.value.state = (typeof state === 'string') ? state : 'normal'
 
     existing.timestamp = (new Date()).toISOString()
@@ -342,9 +346,6 @@ module.exports = function(app) {
       context: "vessels." + app.selfId,
       updates: [
         {
-          source: {
-            label: "self.notificationhandler"
-          },
           values: [{
             path: npath,
             value: existing.value
@@ -372,6 +373,7 @@ module.exports = function(app) {
     }
 
     app.debug("silenced alarm: %j", delta)
+    return true
   }
   
   return plugin
