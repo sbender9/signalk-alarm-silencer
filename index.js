@@ -232,6 +232,22 @@ module.exports = function(app) {
       res.send("Alarm silenced")
     })
 
+    router.put("/silenceNotification", (req, res) => {
+
+      var notification = req.body
+      if ( typeof notification.path == 'undefined' )
+      {
+        app.debug("invalid request: %j", notification)
+        res.status(400)
+        res.send("Invalid Request")
+        return
+      }
+
+      silenceNotification(notification.path)
+
+      res.send("Alarm silenced")
+    })
+
     router.post("/clearNotification", (req, res) => {
 
       var notification = req.body
@@ -271,9 +287,9 @@ module.exports = function(app) {
 
   function silenceNotification(npath, method=[]) {
     var existing = app.getSelfPath(npath)
+    app.debug("method: %j", method)
     if (typeof existing.value === 'undefined') existing.value = []
-    app.debug("existing: " + existing.value.method)
-    existing.value.method = method
+    existing.value.method = Array.isArray(method) ? method : []
 
     existing.timestamp = (new Date()).toISOString()
 
@@ -281,6 +297,9 @@ module.exports = function(app) {
       context: "vessels." + app.selfId,
       updates: [
         {
+          source: {
+            label: "self.notificationhandler"
+          },
           values: [{
             path: npath,
             value: existing.value
@@ -313,9 +332,9 @@ module.exports = function(app) {
 
   function clearNotification(npath, state='normal') {
     var existing = app.getSelfPath(npath)
-
+    app.debug("state: %j", state)
     if (typeof existing.value === 'undefined') existing.value = []
-    existing.value.state = state
+    existing.value.state = (typeof state === 'string') ? state : 'normal'
 
     existing.timestamp = (new Date()).toISOString()
 
