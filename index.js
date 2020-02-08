@@ -232,22 +232,6 @@ module.exports = function(app) {
       res.send("Alarm silenced")
     })
 
-    router.put("/silenceNotification", (req, res) => {
-
-      var notification = req.body
-      if ( typeof notification.path == 'undefined' )
-      {
-        app.debug("invalid request: %j", notification)
-        res.status(400)
-        res.send("Invalid Request")
-        return
-      }
-
-      silenceNotification(notification.path)
-
-      res.send("Alarm silenced")
-    })
-
     router.post("/clearNotification", (req, res) => {
 
       var notification = req.body
