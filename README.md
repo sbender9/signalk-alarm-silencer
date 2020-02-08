@@ -48,7 +48,7 @@ PUT http://localhost:3000/signalk/v1/api/vessels/self/propulsion/port/lowOilLeve
 
 ## Notification Method
 
-The `value` can be `auto`, `wind`, `route`, or `standby`
+The `value` can be a set of `visual`, `sound` or blank states to change or remove the `method` of notification.
 
 ```
 PUT http://localhost:3000/signalk/v1/api/vessels/self/propulsion/port/lowOilLevel/method
