@@ -171,10 +171,18 @@ module.exports = function(app) {
             if ( pv.path.startsWith(`notifications.`) && registered.indexOf(pv.path) == -1 ) {
               app.registerPutHandler('vessels.self',
                                      pv.path + '.state',
-                                     putState)
+                                     (context, path, value, cb) => {
+                                       return putState(context, path, value, update.$source, cb)
+                                     },
+                                     update.$source
+                                    )
               app.registerPutHandler('vessels.self',
                                      pv.path + '.method',
-                                     putMethod)
+                                     (context, path, value, cb) => {
+                                       return putMethod(context, path, value, update.$source, cb)
+                                     },
+                                     update.$source
+                                    )
               registered.push(pv.path)
             }
           })
@@ -184,18 +192,20 @@ module.exports = function(app) {
     return true
   }
 
-  function putState(context, path, value, cb)
+  function putState(context, path, value, source, cb)
   {
     const parts = path.split('.')
     const notifPath = parts.slice(0, parts.length-1).join('.')
-    clearNotification(notifPath, value)
+    clearNotification(notifPath, value, source)
+    return { state: 'SUCCESS' }
   }
 
-  function putMethod(context, path, value, cb)
+  function putMethod(context, path, value, source, cb)
   {
     const parts = path.split('.')
     const notifPath = parts.slice(0, parts.length-1).join('.')
-    silenceNotification(notifPath, value)
+    silenceNotification(notifPath, value, source)
+    return { state: 'SUCCESS' }
   }
 
   function subscription_error(err)
@@ -273,7 +283,7 @@ module.exports = function(app) {
     unsubscribes = []
   }
 
-  function silenceNotification(npath, method=[]) {
+  function silenceNotification(npath, method=[], source) {
     var existing = app.getSelfPath(npath + '.value')
     app.debug("existing: " + existing.method)
     existing.method = method
@@ -284,6 +294,7 @@ module.exports = function(app) {
       context: "vessels." + app.selfId,
       updates: [
         {
+          $source: source,
           values: [{
             path: npath,
             value: existing
@@ -316,7 +327,7 @@ module.exports = function(app) {
   }
 
 
-  function clearNotification(npath, state='normal') {
+  function clearNotification(npath, state='normal', source) {
     var existing = app.getSelfPath(npath + '.value')
     existing.state = state
     //existing.method = []
@@ -327,9 +338,7 @@ module.exports = function(app) {
       context: "vessels." + app.selfId,
       updates: [
         {
-          source: {
-            label: "self.notificationhandler"
-          },
+          $source: source,
           values: [{
             path: npath,
             value: existing
