@@ -17,6 +17,9 @@
 const _ = require('lodash')
 const util = require('util')
 
+const SUCCESS_RES = { state: 'SUCCESS' }
+const FAILURE_RES = { state: 'FAILURE' }
+
 const raymarine_silence =  "%s,7,65361,%s,255,8,3b,9f,%s,%s,00,00,00,00"
 
 const raymarineAlarmGroupCodes = {
@@ -136,6 +139,13 @@ const raymarineAlarmCodes = {
   "No Fix": 0x6C
 }
 
+function padd(n, p, c)
+{
+  var pad_char = typeof c !== 'undefined' ? c : '0';
+  var pad = new Array(1 + p).join(pad_char);
+  return (pad + n).slice(-pad.length);
+}
+
 module.exports = function(app) {
   var plugin = {}
   var unsubscribes = []
@@ -164,7 +174,7 @@ module.exports = function(app) {
         policy: 'instant'
       }]
     }
-    
+
     app.subscriptionmanager.subscribe(subscription, unsubscribes, subscription_error, delta => {
         delta.updates.forEach(update => {
           update.values.forEach(pv => {
@@ -188,7 +198,7 @@ module.exports = function(app) {
           })
         })
     })
-    
+
     return true
   }
 
@@ -196,16 +206,14 @@ module.exports = function(app) {
   {
     const parts = path.split('.')
     const notifPath = parts.slice(0, parts.length-1).join('.')
-    clearNotification(notifPath, value, source)
-    return { state: 'SUCCESS' }
+    return clearNotification(notifPath, value, source) ? SUCCESS_RES : FAILURE_RES
   }
 
   function putMethod(context, path, value, source, cb)
   {
     const parts = path.split('.')
     const notifPath = parts.slice(0, parts.length-1).join('.')
-    silenceNotification(notifPath, value, source)
-    return { state: 'SUCCESS' }
+    return silenceNotification(notifPath, value, source) ? SUCCESS_RES : FAILURE_RES
   }
 
   function subscription_error(err)
@@ -226,7 +234,7 @@ module.exports = function(app) {
       }
 
       silenceNotification(notification.path)
-      
+
       res.send("Alarm silenced")
     })
 
@@ -242,7 +250,7 @@ module.exports = function(app) {
       }
 
       silenceNotification(notification.path)
-      
+
       res.send("Alarm silenced")
     })
 
@@ -258,7 +266,7 @@ module.exports = function(app) {
       }
 
       clearNotification(notification.path)
-      
+
       res.send("Alarm cleared")
     })
 
@@ -273,7 +281,7 @@ module.exports = function(app) {
           silenceNotification(notification.path)
         }
       })
-      
+
       res.send("Notifications silenced")
     })
   }
@@ -284,12 +292,17 @@ module.exports = function(app) {
   }
 
   function silenceNotification(npath, method=[], source) {
-    var existing = app.getSelfPath(npath + '.value')
-    app.debug("existing: " + existing.method)
-    existing.method = method
-        
+    var existing = app.getSelfPath(npath)
+    if (typeof existing === 'undefined') {
+      app.debug("path %s not found", npath)
+      return false
+    }
+    app.debug("method: %j", method)
+    if (typeof existing.value !== 'object') existing.value = {}
+    existing.value.method = Array.isArray(method) ? method : []
+
     existing.timestamp = (new Date()).toISOString()
-    
+
     const delta = {
       context: "vessels." + app.selfId,
       updates: [
@@ -297,7 +310,7 @@ module.exports = function(app) {
           $source: source,
           values: [{
             path: npath,
-            value: existing
+            value: existing.value
           }]
         }
       ]
@@ -306,34 +319,37 @@ module.exports = function(app) {
 
     if ( existing.pgn && existing.pgn == 65288 ) {
       let parts = npath.split('.')
-	  
+
       if ( parts.length === 3 )
       {
-	let group = parts[1];
-		
-	let groupId = raymarineAlarmGroupCodes[group];
-	let alarmId = raymarineAlarmCodes[existing.message];
+        let group = parts[1];
+        let groupId = raymarineAlarmGroupCodes[group];
+        let alarmId = raymarineAlarmCodes[existing.value.message];
 
-
-        let n2k = util.format(raymarine_silence, (new Date()).toISOString(),
+        let n2kMsg = util.format(raymarine_silence, (new Date()).toISOString(),
                               0,
                               padd(alarmId.toString(16),2),
                               padd(groupId.toString(16),2))
-        app.emit('nmea2000out', msg)
+        app.emit('nmea2000out', n2kMsg)
       }
     }
-    
+
     app.debug("silenced alarm: %j", delta)
+    return true
   }
 
 
   function clearNotification(npath, state='normal', source) {
-    var existing = app.getSelfPath(npath + '.value')
-    existing.state = state
-    //existing.method = []
-        
+    var existing = app.getSelfPath(npath)
+    if (typeof existing === 'undefined') {
+      app.debug("path %s not found", npath)
+      return false
+    }
+    app.debug("state: %j", state)
+    if (typeof existing.value !== 'object') existing.value = {}
+    existing.value.state = (typeof state === 'string') ? state : 'normal'
     existing.timestamp = (new Date()).toISOString()
-    
+
     const delta = {
       context: "vessels." + app.selfId,
       updates: [
@@ -341,7 +357,7 @@ module.exports = function(app) {
           $source: source,
           values: [{
             path: npath,
-            value: existing
+            value: existing.value
           }]
         }
       ]
@@ -350,24 +366,23 @@ module.exports = function(app) {
 
     if ( existing.pgn && existing.pgn == 65288 ) {
       let parts = npath.split('.')
-	  
+
       if ( parts.length === 3 )
       {
-	let group = parts[1];
-		
-	let groupId = raymarineAlarmGroupCodes[group];
-	let alarmId = raymarineAlarmCodes[existing.message];
+        let group = parts[1];
+        let groupId = raymarineAlarmGroupCodes[group];
+        let alarmId = raymarineAlarmCodes[existing.value.message];
 
-
-        let n2k = util.format(raymarine_silence, (new Date()).toISOString(),
+        let n2kMsg = util.format(raymarine_silence, (new Date()).toISOString(),
                               0,
                               padd(alarmId.toString(16),2),
                               padd(groupId.toString(16),2))
-        app.emit('nmea2000out', msg)
+        app.emit('nmea2000out', n2kMsg)
       }
     }
-    
+
     app.debug("silenced alarm: %j", delta)
+    return true
   }
   
   return plugin
