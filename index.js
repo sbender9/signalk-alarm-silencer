@@ -178,7 +178,8 @@ module.exports = function(app) {
     app.subscriptionmanager.subscribe(subscription, unsubscribes, subscription_error, delta => {
         delta.updates.forEach(update => {
           update.values.forEach(pv => {
-            if ( pv.path.startsWith(`notifications.`) && registered.indexOf(pv.path) == -1 ) {
+            const key = `${pv.path}:${update.$source}`
+            if ( pv.path.startsWith(`notifications.`) && registered.indexOf(key) == -1 ) {
               app.registerPutHandler('vessels.self',
                                      pv.path + '.state',
                                      (context, path, value, cb) => {
@@ -193,7 +194,7 @@ module.exports = function(app) {
                                      },
                                      update.$source
                                     )
-              registered.push(pv.path)
+              registered.push(key)
             }
           })
         })
@@ -289,6 +290,7 @@ module.exports = function(app) {
   plugin.stop = function() {
     unsubscribes.forEach(f => f())
     unsubscribes = []
+    registered = []
   }
 
   function silenceNotification(npath, method=[], source) {
