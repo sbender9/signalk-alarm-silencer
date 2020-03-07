@@ -4,7 +4,9 @@
   "description": "Plugin to silence SignalK Alarms",
   "main": "index.js",
   "scripts": {
-    "test": "$NODE $npm_package_main"
+    "test": "$NODE $npm_package_main",
+    "create-release": "github-create-release --owner sbender9 --repository signalk-alarm-silencer",
+    "release": "git tag -d v$npm_package_version && git tag v$npm_package_version && git push --tags && git push && npm run create-release"
   },
   "keywords": [
     "signalk-node-server-plugin"
@@ -17,5 +19,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/sbender9/signalk-alarm-silencer"
+  },
+  "devDependencies": {
+    "@signalk/github-create-release": "^1.2.0"
   }
 }
