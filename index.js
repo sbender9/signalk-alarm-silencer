@@ -178,14 +178,23 @@ module.exports = function(app) {
     app.subscriptionmanager.subscribe(subscription, unsubscribes, subscription_error, delta => {
         delta.updates.forEach(update => {
           update.values.forEach(pv => {
-            if ( pv.path.startsWith(`notifications.`) && registered.indexOf(pv.path) == -1 ) {
+            const key = `${pv.path}:${update.$source}`
+            if ( pv.path.startsWith(`notifications.`) && registered.indexOf(key) == -1 ) {
               app.registerPutHandler('vessels.self',
                                      pv.path + '.state',
-                                     putState)
+                                     (context, path, value, cb) => {
+                                       return putState(context, path, value, update.$source, cb)
+                                     },
+                                     update.$source
+                                    )
               app.registerPutHandler('vessels.self',
                                      pv.path + '.method',
-                                     putMethod)
-              registered.push(pv.path)
+                                     (context, path, value, cb) => {
+                                       return putMethod(context, path, value, update.$source, cb)
+                                     },
+                                     update.$source
+                                    )
+              registered.push(key)
             }
           })
         })
@@ -194,18 +203,18 @@ module.exports = function(app) {
     return true
   }
 
-  function putState(context, path, value, cb)
+  function putState(context, path, value, source, cb)
   {
     const parts = path.split('.')
     const notifPath = parts.slice(0, parts.length-1).join('.')
-    return clearNotification(notifPath, value) ? SUCCESS_RES : FAILURE_RES
+    return clearNotification(notifPath, value, source) ? SUCCESS_RES : FAILURE_RES
   }
 
-  function putMethod(context, path, value, cb)
+  function putMethod(context, path, value, source, cb)
   {
     const parts = path.split('.')
     const notifPath = parts.slice(0, parts.length-1).join('.')
-    return silenceNotification(notifPath, value) ? SUCCESS_RES : FAILURE_RES
+    return silenceNotification(notifPath, value, source) ? SUCCESS_RES : FAILURE_RES
   }
 
   function subscription_error(err)
@@ -281,9 +290,10 @@ module.exports = function(app) {
   plugin.stop = function() {
     unsubscribes.forEach(f => f())
     unsubscribes = []
+    registered = []
   }
 
-  function silenceNotification(npath, method=[]) {
+  function silenceNotification(npath, method=[], source) {
     var existing = app.getSelfPath(npath)
     if (typeof existing === 'undefined') {
       app.debug("path %s not found", npath)
@@ -299,6 +309,7 @@ module.exports = function(app) {
       context: "vessels." + app.selfId,
       updates: [
         {
+          $source: source,
           values: [{
             path: npath,
             value: existing.value
@@ -330,7 +341,7 @@ module.exports = function(app) {
   }
 
 
-  function clearNotification(npath, state='normal') {
+  function clearNotification(npath, state='normal', source) {
     var existing = app.getSelfPath(npath)
     if (typeof existing === 'undefined') {
       app.debug("path %s not found", npath)
@@ -339,13 +350,13 @@ module.exports = function(app) {
     app.debug("state: %j", state)
     if (typeof existing.value !== 'object') existing.value = {}
     existing.value.state = (typeof state === 'string') ? state : 'normal'
-
     existing.timestamp = (new Date()).toISOString()
 
     const delta = {
       context: "vessels." + app.selfId,
       updates: [
         {
+          $source: source,
           values: [{
             path: npath,
             value: existing.value
