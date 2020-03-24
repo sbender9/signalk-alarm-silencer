@@ -29,7 +29,7 @@ const raymarineAlarmGroupCodes = {
   "chartplotter": 0x03,
   "ais": 0x04
 };
-  
+
 const raymarineAlarmCodes = {
   "No Alarm": 0x00,
   "Shallow Depth": 0x01,
@@ -334,6 +334,9 @@ module.exports = function(app) {
                               padd(groupId.toString(16),2))
         app.emit('nmea2000out', n2kMsg)
       }
+    } else if (npath.startsWith('notifications.nmea') && existing.value.acknowledgeSupport == 'Supported') {
+      app.debug('The notification was received from NMEA Alerts and supports acknowledgement.')
+      acknowledgeNmeaAlert(npath, existing)
     }
 
     app.debug("silenced alarm: %j", delta)
@@ -386,7 +389,31 @@ module.exports = function(app) {
     app.debug("silenced alarm: %j", delta)
     return true
   }
-  
+
+  function acknowledgeNmeaAlert(npath, notification) {
+
+    let pgn = {
+      "prio": 2,
+      "dst": 255,
+      "pgn": 126984,
+      "Alert Type": notification.value.alertType,
+      "Alert Category": notification.value.alertCategory,
+      "Alert System": notification.value.alertSystem,
+      "Alert ID": notification.value.alertId,
+      "Data Source Network ID NAME": notification.value.dataSourceNetworkIDNAME,
+      "Data Source Instance": notification.value.dataSourceInstance,
+      "Data Source Index-Source": notification.value['dataSourceIndex-Source'],
+      "Alert Occurrence Number": notification.value.alertOccurenceNumber,
+      "Acknowledge Source Network ID NAME": notification.value.acknowledgeSourceNetworkIDNAME,
+      "Response Command": "Acknowledge"
+    }
+
+    app.debug('sending command %j', pgn)
+    app.emit('nmea2000JsonOut', pgn)
+
+    return true
+  }
+
   return plugin
 }
 
@@ -396,7 +423,7 @@ function findNotifications(path, map, res) {
     res.push({path: path, value:map.value})
     return
   }
-  
+
   _.keys(map).forEach(key => {
     let npath = path ? `${path}.${key}` : key
     findNotifications(npath, map[key], res)
