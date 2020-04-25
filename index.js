@@ -150,6 +150,7 @@ module.exports = function(app) {
   var plugin = {}
   var unsubscribes = []
   var registered = []
+  var n2kCallback
 
   plugin.id = "alarmsilencer"
   plugin.name = "Alarm Silencer"
