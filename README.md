@@ -56,3 +56,11 @@ PUT http://localhost:3000/signalk/v1/api/vessels/self/propulsion/port/lowOilLeve
   "value": [ "visual" ],
 }
 ```
+
+## Clearing a notification
+```
+POST http://localhost:3000/plugins/alarmsilencer/clearNotification
+{
+   "path": "notifications.someNotification"
+}
+```
