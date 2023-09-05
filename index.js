@@ -299,6 +299,20 @@ module.exports = function(app) {
       app.debug("path %s not found", npath)
       return false
     }
+
+    if ( source ) {
+      if ( !existing.values )
+      {
+        app.debug('no values')
+        return false;
+      }
+      existing = existing.values[source]
+      if ( !existing ) {
+        app.debug("can't find source")
+        return false;
+      }
+    }
+         
     app.debug("method: %j", method)
     if (typeof existing.value !== 'object') existing.value = {}
     existing.value.method = Array.isArray(method) ? method : []
