@@ -303,10 +303,13 @@ module.exports = function(app) {
     if ( source ) {
       if ( !existing.values )
       {
-        app.debug('no values')
-        return false;
+        if ( !existing.value || existing['$source'] !== source ) {
+          app.debug('no values')
+          return false;
+        }
+      } else {
+        existing = existing.values[source]
       }
-      existing = existing.values[source]
       if ( !existing ) {
         app.debug("can't find source")
         return false;
