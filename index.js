@@ -150,6 +150,7 @@ module.exports = function(app) {
   var plugin = {}
   var unsubscribes = []
   var registered = []
+  var n2kCallback
 
   plugin.id = "alarmsilencer"
   plugin.name = "Alarm Silencer"
@@ -199,6 +200,31 @@ module.exports = function(app) {
           })
         })
     })
+
+    n2kCallback = (msg) => {
+      try {
+        if (msg.pgn == 126984) {
+
+          app.debug('Received a NMEA Alert acknowledgement.')
+          app.debug('msg: ' + JSON.stringify(msg))
+
+          //find notification with matching alertId
+          let notifications = app.getSelfPath('notifications')
+          let notification = findPaths(notifications, 'alertId', msg.fields['Alert ID'])
+
+          if(notification.length > 0){
+            let pathSplit = notification[0].split('.')
+            let notificationPath = 'notifications.' + pathSplit.slice(0,pathSplit.length-2).join('.')
+            app.debug('Silencing ' + notificationPath)
+
+            silenceNotification(notificationPath)
+          }
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    app.on("N2KAnalyzerOut", n2kCallback)
 
     return true
   }
@@ -291,6 +317,11 @@ module.exports = function(app) {
     unsubscribes.forEach(f => f())
     unsubscribes = []
     registered = []
+
+    if (n2kCallback) {
+      app.removeListener("N2KAnalyzerOut", n2kCallback)
+      n2kCallback = undefined
+    }
   }
 
   function silenceNotification(npath, method=[], source) {
@@ -429,6 +460,24 @@ module.exports = function(app) {
     app.emit('nmea2000JsonOut', pgn)
 
     return true
+  }
+
+  function findPaths(obj, propName, value, prefix = '', store = []){
+    for (let key in obj) {
+      const curPath = prefix.length > 0 ? `${prefix}.${key}` : key
+      if (typeof obj[key] === 'object') {
+        if(!propName || curPath.includes(propName)){
+          store.push(curPath)
+        }
+        findPaths(obj[key], propName, value, curPath, store);
+      } else {
+        if((!propName || curPath.includes(propName))
+          && (!value || obj[key] == value)){
+          store.push(curPath)
+        }
+      }
+    }
+    return store;
   }
 
   return plugin
