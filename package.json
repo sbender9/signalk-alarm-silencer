@@ -1,6 +1,6 @@
 {
   "name": "signalk-alarm-silencer",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "Plugin to silence SignalK Alarms",
   "main": "index.js",
   "scripts": {
