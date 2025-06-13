@@ -176,7 +176,8 @@ module.exports = function(app) {
     }
 
     app.subscriptionmanager.subscribe(subscription, unsubscribes, subscription_error, delta => {
-        delta.updates.forEach(update => {
+      delta.updates.forEach(update => {
+        if ( update.values ) {
           update.values.forEach(pv => {
             const key = `${pv.path}:${update.$source}`
             if ( pv.path.startsWith(`notifications.`) && registered.indexOf(key) == -1 ) {
@@ -197,7 +198,8 @@ module.exports = function(app) {
               registered.push(key)
             }
           })
-        })
+        }
+      })
     })
 
     return true
