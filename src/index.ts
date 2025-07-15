@@ -16,7 +16,6 @@
  */
 
 import {
-  PGN,
   PGN_126984,
   PGN_65361_SeatalkSilenceAlarm,
   SeatalkAlarmIdValues,
@@ -172,11 +171,7 @@ module.exports = function (app: any) {
 
     router.post('/silenceAllNotifications', (req: any, res: any) => {
       const all: any[] = []
-      const notifications = findNotifications(
-        'notifications',
-        app.getSelfPath('notifications'),
-        all
-      )
+      findNotifications('notifications', app.getSelfPath('notifications'), all)
       all.forEach((notification) => {
         if (
           notification.value.state !== 'normal' &&
@@ -250,16 +245,21 @@ module.exports = function (app: any) {
 
       if (parts.length === 3) {
         const group = parts[1]
-        const groupId =
-          SeatalkAlarmGroupValues[
-            group.charAt(0).toUpperCase() + group.slice(1)
+        const key: string = group.charAt(0).toUpperCase() + group.slice(1)
+        const groupId: number =
+          SeatalkAlarmGroupValues[key as keyof typeof SeatalkAlarmGroupValues]
+        const alarmId =
+          SeatalkAlarmIdValues[
+            existing.value.message as keyof typeof SeatalkAlarmIdValues
           ]
-        const alarmId = SeatalkAlarmIdValues[existing.value.message]
 
-        const pgn = convertCamelCase(app, new PGN_65361_SeatalkSilenceAlarm({
-          alarmId,
-          alarmGroup: groupId
-        }))
+        const pgn = convertCamelCase(
+          app,
+          new PGN_65361_SeatalkSilenceAlarm({
+            alarmId,
+            alarmGroup: groupId
+          })
+        )
 
         app.debug('sending silenced %j', pgn)
         app.emit('nmea2000JsonOut', pgn)
@@ -314,16 +314,21 @@ module.exports = function (app: any) {
 
       if (parts.length === 3) {
         const group = parts[1]
+        const key: string = group.charAt(0).toUpperCase() + group.slice(1)
         const groupId =
-          SeatalkAlarmGroupValues[
-            group.charAt(0).toUpperCase() + group.slice(1)
+          SeatalkAlarmGroupValues[key as keyof typeof SeatalkAlarmGroupValues]
+        const alarmId =
+          SeatalkAlarmIdValues[
+            existing.value.message as keyof typeof SeatalkAlarmIdValues
           ]
-        const alarmId = SeatalkAlarmIdValues[existing.value.message]
 
-        const pgn = convertCamelCase(app, new PGN_65361_SeatalkSilenceAlarm({
-          alarmId,
-          alarmGroup: groupId
-        }))
+        const pgn = convertCamelCase(
+          app,
+          new PGN_65361_SeatalkSilenceAlarm({
+            alarmId,
+            alarmGroup: groupId
+          })
+        )
 
         app.debug('sending silenced %j', pgn)
         app.emit('nmea2000JsonOut', pgn)
@@ -335,19 +340,22 @@ module.exports = function (app: any) {
   }
 
   function acknowledgeNmeaAlert(npath: string, notification: any) {
-    const pgn = convertCamelCase(app, new PGN_126984({
-      alertType: notification.value.alertType,
-      alertCategory: notification.value.alertCategory,
-      alertSystem: notification.value.alertSystem,
-      alertId: notification.value.alertId,
-      dataSourceNetworkIdName: notification.value.dataSourceNetworkIDNAME,
-      dataSourceInstance: notification.value.dataSourceInstance,
-      dataSourceIndexSource: notification.value['dataSourceIndex-Source'],
-      alertOccurrenceNumber: notification.value.alertOccurenceNumber,
-      acknowledgeSourceNetworkIdName:
-        notification.value.acknowledgeSourceNetworkIDNAME,
-      responseCommand: AlertResponseCommand.Acknowledge
-    }))
+    const pgn = convertCamelCase(
+      app,
+      new PGN_126984({
+        alertType: notification.value.alertType,
+        alertCategory: notification.value.alertCategory,
+        alertSystem: notification.value.alertSystem,
+        alertId: notification.value.alertId,
+        dataSourceNetworkIdName: notification.value.dataSourceNetworkIDNAME,
+        dataSourceInstance: notification.value.dataSourceInstance,
+        dataSourceIndexSource: notification.value['dataSourceIndex-Source'],
+        alertOccurrenceNumber: notification.value.alertOccurenceNumber,
+        acknowledgeSourceNetworkIdName:
+          notification.value.acknowledgeSourceNetworkIDNAME,
+        responseCommand: AlertResponseCommand.Acknowledge
+      })
+    )
 
     app.debug('sending command %j', pgn)
     app.emit('nmea2000JsonOut', pgn)

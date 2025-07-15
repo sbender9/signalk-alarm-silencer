@@ -116,7 +116,7 @@ module.exports = function (app) {
         });
         router.post('/silenceAllNotifications', (req, res) => {
             const all = [];
-            const notifications = findNotifications('notifications', app.getSelfPath('notifications'), all);
+            findNotifications('notifications', app.getSelfPath('notifications'), all);
             all.forEach((notification) => {
                 if (notification.value.state !== 'normal' &&
                     notification.value.method &&
@@ -177,7 +177,8 @@ module.exports = function (app) {
             const parts = npath.split('.');
             if (parts.length === 3) {
                 const group = parts[1];
-                const groupId = ts_pgns_1.SeatalkAlarmGroupValues[group.charAt(0).toUpperCase() + group.slice(1)];
+                const key = group.charAt(0).toUpperCase() + group.slice(1);
+                const groupId = ts_pgns_1.SeatalkAlarmGroupValues[key];
                 const alarmId = ts_pgns_1.SeatalkAlarmIdValues[existing.value.message];
                 const pgn = (0, ts_pgns_1.convertCamelCase)(app, new ts_pgns_1.PGN_65361_SeatalkSilenceAlarm({
                     alarmId,
@@ -225,7 +226,8 @@ module.exports = function (app) {
             const parts = npath.split('.');
             if (parts.length === 3) {
                 const group = parts[1];
-                const groupId = ts_pgns_1.SeatalkAlarmGroupValues[group.charAt(0).toUpperCase() + group.slice(1)];
+                const key = group.charAt(0).toUpperCase() + group.slice(1);
+                const groupId = ts_pgns_1.SeatalkAlarmGroupValues[key];
                 const alarmId = ts_pgns_1.SeatalkAlarmIdValues[existing.value.message];
                 const pgn = (0, ts_pgns_1.convertCamelCase)(app, new ts_pgns_1.PGN_65361_SeatalkSilenceAlarm({
                     alarmId,
