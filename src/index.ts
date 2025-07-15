@@ -246,12 +246,8 @@ module.exports = function (app: any) {
       if (parts.length === 3) {
         const group = parts[1]
         const key: string = group.charAt(0).toUpperCase() + group.slice(1)
-        const groupId: number =
-          SeatalkAlarmGroupValues[key as keyof typeof SeatalkAlarmGroupValues]
-        const alarmId =
-          SeatalkAlarmIdValues[
-            existing.value.message as keyof typeof SeatalkAlarmIdValues
-          ]
+        const groupId: number = SeatalkAlarmGroupValues[key]
+        const alarmId = SeatalkAlarmIdValues[existing.value.message]
 
         const pgn = convertCamelCase(
           app,
@@ -315,12 +311,8 @@ module.exports = function (app: any) {
       if (parts.length === 3) {
         const group = parts[1]
         const key: string = group.charAt(0).toUpperCase() + group.slice(1)
-        const groupId =
-          SeatalkAlarmGroupValues[key as keyof typeof SeatalkAlarmGroupValues]
-        const alarmId =
-          SeatalkAlarmIdValues[
-            existing.value.message as keyof typeof SeatalkAlarmIdValues
-          ]
+        const groupId = SeatalkAlarmGroupValues[key]
+        const alarmId = SeatalkAlarmIdValues[existing.value.message]
 
         const pgn = convertCamelCase(
           app,
